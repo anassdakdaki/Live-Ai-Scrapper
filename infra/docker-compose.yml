@@ -1,0 +1,39 @@
+version: "3.9"
+services:
+  web:
+    build:
+      context: ..
+      dockerfile: ./infra/web.Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NODE_API=http://node:4000
+    depends_on:
+      - node
+  node:
+    build:
+      context: ..
+      dockerfile: ./infra/node.Dockerfile
+    environment:
+      - PYTHON_ENDPOINT=http://python:8001
+      - DATA_DIR=/data
+    volumes:
+      - node-data:/data
+    ports:
+      - "4000:4000"
+    depends_on:
+      - python
+  python:
+    build:
+      context: ..
+      dockerfile: ./infra/python.Dockerfile
+    environment:
+      - PY_OUTPUT_DIR=/data
+    volumes:
+      - python-data:/data
+    ports:
+      - "8001:8001"
+volumes:
+  node-data:
+  python-data:
