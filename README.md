@@ -1,42 +1,51 @@
 # Scraper AI
 
-Deterministic-first web scraping platform with optional AI augmentation. Works end-to-end without AI and allows per-action AI toggles with full provenance and explainability.
+An early prototype for a web scraping workspace, with a Next.js interface, an Express API, SQLite storage, and a Python Playwright worker.
 
-## Project layout
-- `apps/web`: Next.js (App Router, TS, Tailwind) UI for project workspace, schema editor, visual sandbox, execution console, and exports.
-- `services/node`: Node/Express API for projects, runs, exports, storage (SQLite local, Postgres planned), AI abstraction, and orchestration with the Python worker.
-- `services/python`: FastAPI + Playwright worker for deterministic crawling/extraction with optional AI semantic steps behind an interface.
-- `packages/shared`: Shared types and contracts for projects, schema, selectors, and runs.
-- `infra`: Dockerfiles and compose for local multi-service runs.
+## Current state
 
-## Deterministic-first principles
-- Default execution mode is `no-ai`; AI is an add-on. Every AI call must be explainable and reversible.
-- Selectors, crawl rules, and schema are explicit and versioned per project snapshot.
-- Exports generate runnable Node/Python code that works independently of the platform.
-- Drift detection planned via selector confidence + validation failures.
+This repository contains the service structure and an interface concept. It does not yet provide a complete scraping workflow.
 
-## Getting started (local)
-1) Install Node 20+, Python 3.10+, and Playwright dependencies.
-2) Install JS deps: `npm install --workspaces`.
-3) Install Python deps: `pip install -r services/python/requirements.txt`.
-4) Run services:
-   - Web: `npm run dev --workspace apps/web`
-   - Node API: `npm run dev --workspace services/node`
-   - Python worker: `uvicorn services.python.main:app --reload --host 0.0.0.0 --port 8001`
+| Component | Implemented | Still needed |
+| --- | --- | --- |
+| Web | Workspace overview and feature cards | Connect controls to the API; browser sandbox |
+| API | Project storage, run routes, and export templates | Worker payload handling and run completion tracking |
+| Worker | Page fetching, rate delays, and JSON output | Field extraction and link discovery |
+| AI | Client interface and no-op implementation | Provider integration |
+| Exports | Node and Python template routes | Working selectors and complete extraction logic |
 
-## Docker compose
-```bash
-docker-compose -f infra/docker-compose.yml up --build
+The worker currently writes empty data records. Exported scripts are templates that require implementation.
+
+## Layout
+
+- `apps/web/`: Next.js interface.
+- `services/node/`: Express routes and SQLite storage.
+- `services/python/`: FastAPI and Playwright worker.
+- `packages/shared/`: Shared TypeScript contracts.
+- `infra/`: Docker configuration.
+
+## Development
+
+Use Node.js 20+ and Python 3.10+. The JavaScript workspace currently contains `workspace:*` dependencies; the checked-in npm install instructions require workspace dependency fixes before they work with npm.
+
+The Python worker can be started separately:
+
+```sh
+python -m pip install -r services/python/requirements.txt
+python -m playwright install chromium
+python -m uvicorn main:app --app-dir services/python --reload --port 8001
 ```
 
-## Next steps / roadmap
-- Visual sandbox wired to Playwright session proxy with click-to-select + selector confidence/fallbacks.
-- Schema editor with validators, lockable fields, and AI-assisted suggestions (OpenAI-compatible interface).
-- Deterministic BFS crawler with intent scoring and auth replay.
-- Extraction pipeline with fallback chain (CSS/XPath/Regex) and optional AI semantic layer.
-- Drift detection, provenance metadata on every field, and exportable datasets (CSV/JSON/JSONL).
+Health endpoint: http://localhost:8001/health.
 
-## AI integration (optional)
-- AI providers must implement `AiClient.complete({ prompt, model?, temperature? })`.
-- AI is only invoked on explicit user toggle per action (selector suggestion, schema detection, semantic extraction).
-- All AI outputs must include confidence + rationale and be reversible to deterministic selectors.
+Service defaults are web `3000`, Node API `4000`, and Python worker `8001`. The Node API reads `PYTHON_ENDPOINT` and `DATA_DIR`; the worker reads `PY_OUTPUT_DIR`.
+
+Dockerfiles and Compose configuration are included in `infra/`, but depend on resolving the JavaScript workspace setup.
+
+## Next work
+
+1. Fix workspace installation and build commands.
+2. Parse stored project JSON before sending it to the worker and validate worker responses.
+3. Implement selectors, link discovery, and completed/failed run reporting.
+4. Connect the interface and test one project through export.
+5. Add an AI provider only after the deterministic workflow works.
